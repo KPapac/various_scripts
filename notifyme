@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+topic="ntfy.sh/kostas_at_molev212"
+# File to run the std output.
+#log_file="${$}_$(date +%s).log"
+#error_msg=$(tail -n 20 ${log_file})
+cmd_to_run=$@
+
+function success { 
+curl \
+  -H "Title: Process completed." \
+  -H "Tags: heavy_check_mark, tada" \
+  -d "Success for \"${cmd_to_run}\".
+Ran for $(($SECONDS/60)) minutes and $((SECONDS%60)) seconds." \
+  $topic
+}
+
+function fail {
+curl \
+  -H "Title: Process failed." \
+  -H "Tags: facepalm,skull" \
+  -d "Failure for \"${cmd_to_run}\"." \
+  $topic
+}
+
+# Run the command
+echo "Executing: $cmd_to_run"
+$@ && success || fail
+
