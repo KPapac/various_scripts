@@ -1,19 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 from os.path import basename, splitext
 import re
 from Bio import GenBank
 import copy
-# from pprint import pprint
-#pprint(vars(entry))
+import argparse
 
+def parse_arguments():
+    '''
+    Parser of arguments.
+    '''
+    parser = argparse.ArgumentParser(description='GBK file parser')
+    parser.add_argument('gbk_file', type=str, help='Path to the GBK file')
+    parser.add_argument('-o', '--output', type=str, help='Output path', default='')
+    args = parser.parse_args()
+    return args
 
-def make_data_to_undo_concatenation(input_gbk,tsv_file_name):
+def make_data_to_undo_concatenation(input_gbk,prefix):
     '''
     Exports locus and size attributes of Bio.GenBank object to a tsv and
     returns a multi gbk file as an Bio.GenBank object.
     '''
+    tsv_file_name=prefix+'.tsv'
     with open(input_gbk) as handle:
         with open(tsv_file_name, 'w') as tsv:
             for record in GenBank.parse(handle):
@@ -66,14 +76,27 @@ def fix_coordinates_of_features(feature_list, genome_size):
         
     return new_feature_list
 
-def main(input_gbk):
+def export_gbk_to_file(object_to_export, output_path):
+    '''
+    If I provide the -o argument, save gbk to the output_path.
+    '''
+    with open(output_path, 'w') as outf:
+        sys.stdout = outf
+        print(object_to_export)
+
+def main():
+    # Parsing arguments
+    args = parse_arguments()
+    input_gbk= args.gbk_file
+    output_path = args.output
+
     # Define basename for gbk file. Used for saving tsv and 
     # writing locus in gbk.
-    prefix=splitext(basename(input_gbk))[0]
+    prefix=splitext(basename(input_gbk))[0] if output_path is '' else splitext(output_path)[0]
     make_data_to_undo_concatenation(input_gbk, prefix)
     conc_gbk=concatenate_gbk(input_gbk, prefix)
-    # print(type(conc_gbk))
-    print(conc_gbk)
-    # pprint(vars(conc_gbk))
+
+    if output_path is not '': export_gbk_to_file(conc_gbk, output_path) 
+    else: print(conc_gbk)
         
-main(input_gbk="./test.gbk")
+main()

@@ -1,34 +1,46 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 from os.path import basename, splitext
 import re
 import copy
 from Bio import GenBank
 from Bio.GenBank.Record import Record as GBK_Record
 import csv
+import argparse
 
+def parse_arguments():
+    '''
+    Parser of arguments.
+    '''
+    parser = argparse.ArgumentParser(description='GBK file parser')
+    parser.add_argument('gbk_file', type=str, help='Path to the concatenated GBK file')
+    parser.add_argument('tsv_file', type=str, help='Path to the tsv_file of the concatenated GBK file')
+    parser.add_argument('-o', '--output', type=str, help='Output path', default='')
+    args = parser.parse_args()
+    return args
 
-def read_data_to_undo_concatenation(input_gbk,tsv_file_name):
+def read_data_to_undo_concatenation(input_gbk,tsv_file):
     '''
     Reads the tsv made by gbk_m2sEntry.py to acquire data to 
     deconcatenate.
     '''
     deconc_data=[]
-    with open('test','r') as handle:
+    with open(tsv_file,'r') as handle:
         tsv_data = csv.reader(handle, delimiter="\t")
         for line in tsv_data:
             deconc_data.append(line)
         return deconc_data   
 
-def split_gbk(input_gbk, prefix):
+def split_gbk(input_gbk, tsv_file):
     '''
     Reads the concatenated gbk and extracts from the end, the 
     contig entries. So the concatenated gbk should be exhausted in the end.
     '''
     gbk_records=[]
     # Gets data base on which to split the gbk file
-    tsv_data=read_data_to_undo_concatenation(input_gbk, prefix)
+    tsv_data=read_data_to_undo_concatenation(input_gbk, tsv_file)
 
     # Reads concatenated gbk file.
     with open(input_gbk) as handle:
@@ -52,10 +64,9 @@ def split_gbk(input_gbk, prefix):
 
             # Gather gbk entries for each contig to a list
             gbk_records.append(new_record)
-            break
         # Raise error if the concatenate is not consumed.
-        # if len(conc_gbk.sequence) != 0 and conc_gbk.size !=0:
-        #     raise Exception("Something is wrong, parts of the gbk are not parsed.")
+        if len(conc_gbk.sequence) != 0 and conc_gbk.size !=0:
+            raise Exception("Something is wrong, parts of the gbk are not parsed.")
     return gbk_records
 
 def fix_feature_coords(concatenated_gbk, contig_gbk, contig_length):
@@ -88,13 +99,30 @@ def fix_feature_coords(concatenated_gbk, contig_gbk, contig_length):
             contig_features.append(fixed_feature)
     return contig_features
 
-def main(input_gbk):
+def export_gbk_to_file(object_to_export, output_path):
+    '''
+    If I provide the -o argument, save gbk to the output_path.
+    '''
+    with open(output_path, 'w') as outf:
+        sys.stdout = outf
+        for item in object_to_export[::-1]:
+            print(item)
+
+def main():
+    # Parsing arguments
+    args = parse_arguments()
+    input_gbk= args.gbk_file
+    path_to_tsv=args.tsv_file
+    output_path = args.output
+    print(input_gbk, path_to_tsv)
     # Define basename for gbk file. Used for saving/reading tsv and 
     # writing locus in gbk.
-    prefix=splitext(basename(input_gbk))[0]
-    read_data_to_undo_concatenation(input_gbk, prefix)
-    my_entries=split_gbk(input_gbk, prefix)
-    for item in my_entries[::-1]:
-        print(item)
+    read_data_to_undo_concatenation(input_gbk, path_to_tsv)
+    contigs_in_gbk=split_gbk(input_gbk, path_to_tsv)
 
-main(input_gbk="./conc.gbk")
+    if output_path is not '': export_gbk_to_file(contigs_in_gbk, output_path) 
+    else:
+        for item in my_entries[::-1]:
+            print(item)
+
+main()
