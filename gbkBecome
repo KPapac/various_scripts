@@ -167,8 +167,6 @@ def fix_feature_coords(concatenated_gbk, contig_gbk, contig_length):
             new_start=start-min(contig_positions)+1
             new_end=end-min(contig_positions)+1
             
-            print(start, end, new_start, new_end)
-
             # If I find a join feature.
             if remaining_feature_coords!=[]:
                 join_coords=[]
