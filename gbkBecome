@@ -160,6 +160,10 @@ def fix_feature_coords(concatenated_gbk, contig_gbk, contig_length):
     for feature in concatenated_gbk.features:
         feature_coords = re.findall(r'\d+', feature.location)
 
+        # Check if I merged stuff from different contigs
+        if any(int(position) in contig_positions for position in feature_coords) and not all(int(position) in contig_positions for position in feature_coords):
+               raise Exception(f'A feature has coordinates in multiple contigs. Try to unmerge it.\nThe feature is:\n{feature}')
+
         # Fixing coordinates of contig features 
         if all(int(position) in contig_positions for position in feature_coords):
             start, end, *remaining_feature_coords = feature_coords
