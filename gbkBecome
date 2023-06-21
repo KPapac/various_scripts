@@ -11,17 +11,17 @@ import csv
 import argparse
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Argument example')
+    parser = argparse.ArgumentParser(description='A script written in python for concatenating a multi entry Genbank file, or undoing the concatenation.')
     subparsers = parser.add_subparsers(title='Action', dest='action')
     
-    merge_parser = subparsers.add_parser('merged', help='Split action')
-    merge_parser.add_argument('gbk_file', type=str, help='Path to the GBK file')
-    merge_parser.add_argument('-o', '--output', type=str, help='Output path', default='')
+    merge_parser = subparsers.add_parser('merged', help='Concatenating action. You need to provide the path to the multi-entry Genbank file.')
+    merge_parser.add_argument('gbk_file', type=str, help='Path to the multi-entry GBK file.')
+    merge_parser.add_argument('-o', '--output', type=str, help='Path to write the concatenated GBK file.', default='')
 
-    split_parser = subparsers.add_parser('split', help='Merge action')
-    split_parser.add_argument('gbk_file', type=str, help='Path to the concatenated GBK file')
-    split_parser.add_argument('tsv_file', type=str, help='Path to the tsv_file of the concatenated GBK file')
-    split_parser.add_argument('-o', '--output', type=str, help='Output path', default='')
+    split_parser = subparsers.add_parser('split', help='Split action. You need to provide the path to the concatenate Genbank file and the path to the tsv file created when running "gbkBecome merged". You can also provide a tsv file, with 1st column the contig names and 2nd column the contig sizes.')
+    split_parser.add_argument('gbk_file', type=str, help='Path to the concatenated GBK file.')
+    split_parser.add_argument('tsv_file', type=str, help='Path to the tsv_file of the concatenated GBK file.')
+    split_parser.add_argument('-o', '--output', type=str, help='Path to write the multi-entry GBK file.', default='')
     
     args = parser.parse_args()
     return args
