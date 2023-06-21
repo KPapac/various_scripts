@@ -134,11 +134,11 @@ def split_gbk(input_gbk, tsv_file):
             new_record.size=str(contig_length)
 
             new_record.features=fix_feature_coords(conc_gbk, new_record, contig_length)
+            new_record.base_counts=''
 
             # Removing sequence from conc_gbk that I got, until I exhaust the entry
             conc_gbk.sequence=conc_gbk.sequence[:int(conc_gbk.size)-contig_length]
             conc_gbk.size=str(int(conc_gbk.size)-contig_length)
-
 
             # Gather gbk entries for each contig to a list
             gbk_records.append(new_record)
@@ -149,33 +149,49 @@ def split_gbk(input_gbk, tsv_file):
 
 def fix_feature_coords(concatenated_gbk, contig_gbk, contig_length):
     '''
-    Reads features from conc_entry, returns features with new coordinates 
-    for new_entry.
+    Reads features from conc_entry, returns features belonging to contig_gbk 
+    with new coordinates for new_entry.
     '''
     # Getting features for the contig
     contig_features=[]
 
     #Need to add +1, cause python counts from 0
     contig_positions=tuple(range(int(concatenated_gbk.size)-contig_length+1,int(concatenated_gbk.size)+1))
-
     for feature in concatenated_gbk.features:
-        start, end = re.findall(r'\d+', feature.location)
-        start, end = int(start), int(end)
+        feature_coords = re.findall(r'\d+', feature.location)
 
         # Fixing coordinates of contig features 
-        if start and end in contig_positions:
+        if all(int(position) in contig_positions for position in feature_coords):
+            start, end, *remaining_feature_coords = feature_coords
+            start, end = int(start), int(end)
             new_start=start-min(contig_positions)+1
             new_end=end-min(contig_positions)+1
+            
+            print(start, end, new_start, new_end)
 
+            # If I find a join feature.
+            if remaining_feature_coords!=[]:
+                join_coords=[]
+                while remaining_feature_coords:
+                    join_coords+=[f'{new_start}..{new_end}']
+                    start, end, *remaining_feature_coords = remaining_feature_coords
+                    start, end = int(start), int(end)
+                    new_start=start-min(contig_positions)+1
+                    new_end=end-min(contig_positions)+1
+                join_coords+=[f'{new_start}..{new_end}']
+                fixed_coords='join(' + ','.join(join_coords)+')'
+            else: fixed_coords=f'{new_start}..{new_end}'
+            
             if re.match('complement',feature.location):
-                fixed_feature=GenBank.Record.Feature(key=feature.key, location=f'complement({new_start}..{new_end})')
+                fixed_feature=GenBank.Record.Feature(key=feature.key, location=f'complement({fixed_coords})')
             else: 
-                fixed_feature=GenBank.Record.Feature(key=feature.key, location=f'{new_start}..{new_end}')
+                fixed_feature=GenBank.Record.Feature(key=feature.key, location=f'{fixed_coords}')
             # Keeps qualifiers from previous entry
             fixed_feature.qualifiers=feature.qualifiers
 
             contig_features.append(fixed_feature)
     return contig_features
+
 
 def split_export_gbk_to_file(object_to_export, output_path):
     '''
