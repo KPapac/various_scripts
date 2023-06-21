@@ -5,7 +5,6 @@ import sys
 from os.path import basename, splitext
 import re
 from Bio import GenBank
-import copy
 import argparse
 
 def parse_arguments():

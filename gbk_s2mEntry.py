@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from os.path import basename, splitext
 import re
 import copy
 from Bio import GenBank
@@ -114,15 +113,12 @@ def main():
     input_gbk= args.gbk_file
     path_to_tsv=args.tsv_file
     output_path = args.output
-    print(input_gbk, path_to_tsv)
-    # Define basename for gbk file. Used for saving/reading tsv and 
-    # writing locus in gbk.
     read_data_to_undo_concatenation(input_gbk, path_to_tsv)
     contigs_in_gbk=split_gbk(input_gbk, path_to_tsv)
 
     if output_path is not '': export_gbk_to_file(contigs_in_gbk, output_path) 
     else:
-        for item in my_entries[::-1]:
+        for item in contigs_in_gbk[::-1]:
             print(item)
 
 main()
