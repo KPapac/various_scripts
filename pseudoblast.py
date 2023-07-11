@@ -3,15 +3,15 @@
 
 import subprocess
 
-def run_blastx(QUERY="/home/kostas/query.fa"):
+def run_blastx(QUERY="/home/kostas/bases"):
     DB="/space/no_backup/databases/Wolbachia_prot_ncbi_220302.faa"
     cmd = f'blastx -query {QUERY} -db {DB} -evalue 0.01 -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qframe stitle slen"'
     blast_result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE).stdout
     return(blast_result.decode('ascii'))
 
-def save_to_tmp_check_file(QUERY="/home/kostas/query.fa", FILE="check"):
+def save_to_tmp_check_file(QUERY="/home/kostas/bases", FILE="check"):
     DB="/space/no_backup/databases/Wolbachia_prot_ncbi_220302.faa"
-    QUERY="/home/kostas/query.fa"
+    QUERY="/home/kostas/bases"
     cmd = f'blastx -query {QUERY} -db {DB} -evalue 0.01'
     blast_result=subprocess.run(cmd, shell=True, stdout=subprocess.PIPE).stdout.decode('ascii')
     with open(FILE,'w') as f:
