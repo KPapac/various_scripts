@@ -45,6 +45,6 @@ awk -F"\t"\
   '{if ($9<$10) print "FT   misc_feature    "$7".."$8; 
             else print "FT   misc_feature    complement("$7".."$8")"} \
   {print "FT                   /color=6"}
-  {print "FT                   /product="$13}
-  {print "FT                   /note=PercID:"$3", eval:"$11", PercPseudoCov:"$4/$14}
+  {print "FT                   /product=\""$13"\""}
+  {print "FT                   /note=\"PercID:"$3", eval:"$11", PercPseudoCov:"$4/$14"\""}
   '
