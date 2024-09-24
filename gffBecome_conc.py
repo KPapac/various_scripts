@@ -36,6 +36,7 @@ def merge_gff(path_to_gff, output_path):
 
     # Appending contig sizes to dataframe
     gff['contig_sizes_to_add']=gff[0].map(contig_sizes)
+    print(gff['contig_sizes_to_add'])
     # Adding previous coordinates
     gff[3] += gff['contig_sizes_to_add']
     gff[4] += gff['contig_sizes_to_add']

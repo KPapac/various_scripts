@@ -15,7 +15,6 @@ import panel.widgets as pnw
 pn.extension()
 
 from bokeh.plotting import figure
-from bokeh.plotting import show
 from bokeh.models import ColumnDataSource, Plot, Grid, Range1d
 from bokeh.models.glyphs import Text, Rect
 from bokeh.layouts import gridplot
@@ -23,7 +22,7 @@ from bokeh.io import export_png
 
 parser = argparse.ArgumentParser(
     prog='macro_aligner_viewer.py',
-    description='Returns a png of a DNA alignment.',
+    description='Returns a png of a protein alignment.',
     epilog='Konstantinos Papachristos',
 )
 parser.add_argument('alignment', help='Path to the FASTA alignment file.')
@@ -33,19 +32,30 @@ args = parser.parse_args()
 def get_colors(seqs):
     """make colors for bases in sequence"""
     text = [i for s in list(seqs) for i in s]
-    # For DNA sequences
+    # For protein sequences
     clrs = {
         'A': 'red',
-        'T': 'green',
-        'G': 'orange',
         'C': 'blue',
-        'a': 'red',
-        't': 'green',
-        'g': 'orange',
-        'c': 'blue',
-        'N': 'grey',
-        'n': 'grey',
-        '-': 'white',
+        'D': 'green',
+        'E': 'orange',
+        'F': 'purple',
+        'G': 'yellow',
+        'H': 'pink',
+        'I': 'brown',
+        'K': 'cyan',
+        'L': 'magenta',
+        'M': 'lime',
+        'N': 'olive',
+        'P': 'gold',
+        'Q': 'teal',
+        'R': 'navy',
+        'S': 'coral',
+        'T': 'silver',
+        'V': 'indigo',
+        'W': 'maroon',
+        'Y': 'salmon',
+        'X': 'gray',  # Assuming gray for 'X' character
+        '-': 'white',  # Assuming white for '-' character
     }
     colors = [clrs[i] for i in text]
     return colors
