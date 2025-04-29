@@ -49,21 +49,39 @@ def prune_tree(tree_in, list_of_taxa_file):
 
 
 def print_input_taxa(tree_path):
-    input_taxa = set()
     try:
         with open(tree_path, 'r') as f:
-            trees = f.readlines()
-            for tree_str in trees:
-                if tree_str.strip():
-                    tree = Tree(tree_str, format=2)
-                    for taxon in tree.get_descendants():
-                        if taxon.name:
-                            input_taxa.add(taxon.name)
+            tree_lines = [line.strip() for line in f if line.strip()]
     except Exception:
         print("Could not read the nwk file.")
         sys.exit(1)
-    for taxon in sorted(input_taxa):
-        print(taxon)
+    if not tree_lines:
+        print("No trees found in the input file.")
+        sys.exit(1)
+    tree_taxa_list = []
+    for tree_str in tree_lines:
+        try:
+            tree = Tree(tree_str, format=2)
+            taxa = {taxon.name for taxon in tree.get_descendants() if taxon.name}
+            tree_taxa_list.append(taxa)
+        except Exception as e:
+            print(f"Failed to parse a tree: {e}")
+    if len(tree_taxa_list) == 1:
+        # Only one tree: print all taxa
+        print("Taxa found in the tree:")
+        for taxon in sorted(tree_taxa_list[0]):
+            print(taxon)
+    else:
+        # Multiple trees: find shared and unique taxa
+        shared_taxa = set.intersection(*tree_taxa_list)
+        all_taxa = set.union(*tree_taxa_list)
+        print(f"Shared taxa (present in all {len(tree_taxa_list)} trees):")
+        for taxon in sorted(shared_taxa):
+            print(f"  {taxon}")
+        print("\nUnique taxa (appear in some trees but not all):")
+        unique_taxa = all_taxa - shared_taxa
+        for taxon in sorted(unique_taxa):
+            print(f"  {taxon}")
 
 
 def main():
