@@ -50,26 +50,32 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites):
     synonymous_sites = 0
     nonsynonymous_sites = 0
     nonsyn_table = defaultdict(dict)
+    syn_table = defaultdict(dict)
     reference_codons = {}
     for codon_index in codon_indices:
         ref_codon = reference_seq[codon_index * 3: codon_index * 3 + 3]
         ref_aa = str(Seq(ref_codon).translate())
         reference_codons[codon_index + 1] = f"{ref_aa} ({ref_codon})"
-        aa_diff_found = False
+        codon_has_nonsyn_change = False
+        codon_has_syn_change = False
         for record in records:
             if record.id == reference_id:
                 continue
 
             codon = record.seq[codon_index * 3: codon_index * 3 + 3]
             aa = str(Seq(codon).translate())
-            if aa != ref_aa:
-                aa_diff_found = True
-                nonsyn_table[record.id][codon_index + 1] = f"{aa} ({codon})"
-        if aa_diff_found:
+            if codon != ref_codon:
+                if aa != ref_aa:
+                    codon_has_nonsyn_change = True
+                    nonsyn_table[record.id][codon_index + 1] = f"{aa} ({codon})"
+                else:
+                    codon_has_syn_change = True
+                    syn_table[record.id][codon_index + 1] = f". ({codon})"
+        if codon_has_nonsyn_change:
             nonsynonymous_sites += 1
-        else:
+        elif codon_has_syn_change:
             synonymous_sites += 1
-    return synonymous_sites, nonsynonymous_sites, nonsyn_table, reference_codons
+    return synonymous_sites, nonsynonymous_sites, nonsyn_table, syn_table, reference_codons
 
 
 def print_summary_noncoding(variable_sites, records, reference_id, total_sites):
@@ -100,24 +106,33 @@ def print_summary_noncoding(variable_sites, records, reference_id, total_sites):
         print("\t".join(row))
 
 
-def print_summary(syn, nonsyn, table, reference_codons, reference_id, total_codons):
+def print_summary(
+    syn, nonsyn, nonsyn_table, syn_table, reference_codons, reference_id, total_codons
+):
     print(f"Synonymous variable sites: {syn}")
     print(f"Non-synonymous variable sites: {nonsyn}\n")
-    if not table:
-        print("No non-synonymous changes found.")
-    else:
-        codon_indices = sorted(reference_codons.keys())
-        header = ["Taxon"] + [f"Codon{idx}" for idx in codon_indices]
-        print("\t".join(header))
-        # Reference row
-        ref_row = [reference_id] + [
-            reference_codons.get(idx, ".") for idx in codon_indices
-        ]
-        print("\t".join(ref_row))
-        for taxon in sorted(table.keys()):
-            changes = table[taxon]
-            row = [taxon] + [changes.get(idx, ".") for idx in codon_indices]
-            print("\t".join(row))
+    all_taxa = sorted(set(list(nonsyn_table.keys()) + list(syn_table.keys())))
+    if not all_taxa:
+        print("No variable codon changes found.")
+        print(f"\nTotal codon sites in alignment: {total_codons}")
+        return
+
+    codon_indices = sorted(reference_codons.keys())
+    header = ["Taxon"] + [f"Codon{idx}" for idx in codon_indices]
+    print("\t".join(header))
+    # Reference row
+    ref_row = [reference_id] + [reference_codons.get(idx, ".") for idx in codon_indices]
+    print("\t".join(ref_row))
+    for taxon in all_taxa:
+        row = [taxon]
+        for idx in codon_indices:
+            if idx in nonsyn_table.get(taxon, {}):
+                row.append(nonsyn_table[taxon][idx])
+            elif idx in syn_table.get(taxon, {}):
+                row.append(syn_table[taxon][idx])
+            else:
+                row.append(".")
+        print("\t".join(row))
     print(f"\nTotal codon sites in alignment: {total_codons}")
 
 
@@ -135,11 +150,19 @@ def main():
         )
     else:
         check_alignment_validity(alignment)
-        syn, nonsyn, table, ref_codons = classify_variable_sites(
+        syn, nonsyn, nonsyn_table, syn_table, ref_codons = classify_variable_sites(
             alignment, args.reference, variable_sites
         )
         total_codons = alignment_length // 3
-        print_summary(syn, nonsyn, table, ref_codons, args.reference, total_codons)
+        print_summary(
+            syn,
+            nonsyn,
+            nonsyn_table,
+            syn_table,
+            ref_codons,
+            args.reference,
+            total_codons,
+        )
 
 
 if __name__ == "__main__":
