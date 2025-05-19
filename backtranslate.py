@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--genetic_code",
-    help="Set the genetic code for protein translation. Default is the Universal code (1).",
+    help="Set the genetic code for protein translation. Default is the Universal code (1). If aligning mitochondrial proteins, or anything else that does not follow the Universal genetic code, then you MUST set this...",
     default=1,
 )
 parser.add_argument(
@@ -109,6 +109,9 @@ def main():
         os.remove(f"{args.prefix}_protein_sequences.fasta")
     if os.path.exists(f"{args.prefix}_protein_alignment.fasta"):
         os.remove(f"{args.prefix}_protein_alignment.fasta")
+    print(
+        "If aligning mitochondrial proteins, or anything else that does not follow the Universal genetic code, then you MUST set the --genetic_code argument to have a proper alignment."
+    )
 
 
 if __name__ == "__main__":
