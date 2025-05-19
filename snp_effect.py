@@ -24,6 +24,11 @@ def parse_args():
         action="store_true",
         help="Skip CDS check and codon-level classification (useful for non-coding RNA alignments)",
     )
+    parser.add_argument(
+        "--short_report",
+        action="store_true",
+        help="Skips printing the table of codons and only returns the number of sites differing.",
+    )
     return parser.parse_args()
 
 
@@ -54,6 +59,8 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites, genetic_c
     codon_indices = sorted(set(i // 3 for i in variable_nuc_sites))
     synonymous_sites = 0
     nonsynonymous_sites = 0
+    synonymous_codons = 0
+    nonsynonymous_codons = 0
     nonsyn_table = defaultdict(dict)
     syn_table = defaultdict(dict)
     reference_codons = {}
@@ -63,6 +70,7 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites, genetic_c
         reference_codons[codon_index + 1] = f"{ref_aa} ({ref_codon})"
         codon_has_nonsyn_change = False
         codon_has_syn_change = False
+        max_diff_sites = 0
         for record in records:
             if record.id == reference_id:
                 continue
@@ -76,11 +84,21 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites, genetic_c
                 else:
                     codon_has_syn_change = True
                     syn_table[record.id][codon_index + 1] = f". ({codon})"
+            # Compares nucleotides of codon to the reference codon and adds differences as non-synonymous sites
+            codon_diff_sites = sum(ref_codon[i] != codon[i] for i in range(3))
+            if codon_diff_sites > 3:
+                sys.exit("Wrong parsing of codons, exiting.")
+            elif codon_diff_sites > max_diff_sites:
+                max_diff_sites = codon_diff_sites
+            else:
+                pass
         if codon_has_nonsyn_change:
-            nonsynonymous_sites += 1
+            nonsynonymous_sites += max_diff_sites
+            nonsynonymous_codons += 1
         elif codon_has_syn_change:
-            synonymous_sites += 1
-    return synonymous_sites, nonsynonymous_sites, nonsyn_table, syn_table, reference_codons
+            synonymous_sites += max_diff_sites
+            synonymous_codons += 1
+    return synonymous_sites, nonsynonymous_sites, synonymous_codons, nonsynonymous_codons, nonsyn_table, syn_table, reference_codons
 
 
 def print_summary_noncoding(variable_sites, records, reference_id, total_sites):
@@ -112,13 +130,24 @@ def print_summary_noncoding(variable_sites, records, reference_id, total_sites):
 
 
 def print_summary(
-    syn, nonsyn, nonsyn_table, syn_table, reference_codons, reference_id, total_codons
+    syn,
+    nonsyn,
+    syn_codons,
+    nonsyn_codons,
+    nonsyn_table,
+    syn_table,
+    reference_codons,
+    reference_id,
+    total_codons,
 ):
     print(f"Synonymous variable sites: {syn}")
+    print(f"Synonymous variable codons: {syn_codons}")
     print(f"Non-synonymous variable sites: {nonsyn}\n")
+    print(f"Non-synonymous variable codons: {nonsyn_codons}\n")
     all_taxa = sorted(set(list(nonsyn_table.keys()) + list(syn_table.keys())))
     if not all_taxa:
         print("No variable codon changes found.")
+        print(f"\nTotal sites in alignment: {total_codons*3}")
         print(f"\nTotal codons in alignment: {total_codons}")
         return
 
@@ -138,7 +167,8 @@ def print_summary(
             else:
                 row.append(".")
         print("\t".join(row))
-    print(f"\nTotal codon sites in alignment: {total_codons}")
+    print(f"\nTotal sites in alignment: {total_codons*3}")
+    print(f"\nTotal codons in alignment: {total_codons}")
 
 
 def main():
@@ -150,24 +180,38 @@ def main():
     alignment_length = len(alignment[0].seq)
     variable_sites = get_variable_sites(alignment)
     if args.skip_cds_check:
-        print_summary_noncoding(
-            variable_sites, alignment, args.reference, alignment_length
-        )
+        if args.short_report:
+            print(f"#Fasta_file\tVariable sites\tTotal sites")
+            print(f"{args.fasta_file}\t{len(variable_sites)}\t{alignment_length}")
+        else:
+            print_summary_noncoding(
+                variable_sites, alignment, args.reference, alignment_length
+            )
     else:
         check_alignment_validity(alignment)
-        syn, nonsyn, nonsyn_table, syn_table, ref_codons = classify_variable_sites(
+        syn, nonsyn, syn_codons, nonsyn_codons, nonsyn_table, syn_table, ref_codons = classify_variable_sites(
             alignment, args.reference, variable_sites, args.genetic_code
         )
         total_codons = alignment_length // 3
-        print_summary(
-            syn,
-            nonsyn,
-            nonsyn_table,
-            syn_table,
-            ref_codons,
-            args.reference,
-            total_codons,
-        )
+        if args.short_report:
+            print(
+                f"#Fasta_file\tSynonymous sites\tNon-synonymous sites\tSynonymous codons\tNon-synonymous codons\tTotal sites\tTotal codons"
+            )
+            print(
+                f"{args.fasta_file}\t{syn}\t{nonsyn}\t{syn_codons}\t{nonsyn_codons}\t{alignment_length}\t{total_codons}"
+            )
+        else:
+            print_summary(
+                syn,
+                nonsyn,
+                syn_codons,
+                nonsyn_codons,
+                nonsyn_table,
+                syn_table,
+                ref_codons,
+                args.reference,
+                total_codons,
+            )
 
 
 if __name__ == "__main__":
