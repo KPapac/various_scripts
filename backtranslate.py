@@ -16,6 +16,11 @@ parser = argparse.ArgumentParser(
     epilog="",
 )
 parser.add_argument(
+    "--genetic_code",
+    help="Set the genetic code for protein translation. Default is the Universal code (1).",
+    default=1,
+)
+parser.add_argument(
     "--stop_codon",
     help="Add this flag if there are stop codons in the CDS sequences.",
     action="store_true",
@@ -32,12 +37,12 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-def translate_dna(dna_seq):
-    protein_seq = dna_seq.translate(to_stop=True)
+def translate_dna(dna_seq, code):
+    protein_seq = dna_seq.translate(table=code, to_stop=True)
     return protein_seq
 
 
-def backtranslate_protein(protein_alg, nucleotide_fasta):
+def backtranslate_protein(protein_alg, nucleotide_fasta, code):
     prot_char_dict = {}
     # Reading protein alignment
     for record in SeqIO.parse(protein_alg, "fasta"):
@@ -62,7 +67,7 @@ def backtranslate_protein(protein_alg, nucleotide_fasta):
         for i, (codon, aa) in enumerate(
             zip(nucl_char_dict[fasta_entry], prot_char_dict[fasta_entry])
         ):
-            if Seq(codon).translate() != aa:
+            if Seq(codon).translate(table=code) != aa:
                 sys.exit(
                     f"Error: codon {i//3} ({codon}) in nucl array does not encode for {prot_char_dict[fasta_entry][i]} amino acid in prot array. Exiting."
                 )
@@ -82,7 +87,7 @@ def main():
     dna_sequences = list(SeqIO.parse(args.input_fasta, "fasta"))
     protein_sequences = []
     for dna_seq in dna_sequences:
-        protein_seq = translate_dna(dna_seq.seq)
+        protein_seq = translate_dna(dna_seq.seq, args.genetic_code)
         protein_record = SeqRecord(
             protein_seq, id=dna_seq.id, description=dna_seq.description
         )
@@ -95,7 +100,7 @@ def main():
     )
     # Backtranslating protein alignment
     dna_alignment = backtranslate_protein(
-        f"{args.prefix}_protein_alignment.fasta", args.input_fasta
+        f"{args.prefix}_protein_alignment.fasta", args.input_fasta, args.genetic_code
     )
     # Write output
     SeqIO.write(dna_alignment, args.prefix + "_bck_tr.fa", "fasta")
