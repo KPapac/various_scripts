@@ -12,6 +12,11 @@ def parse_args():
     )
     parser.add_argument("fasta_file", help="Aligned FASTA file of nucleotide sequences")
     parser.add_argument(
+        "--genetic_code",
+        help="Sets the genetic code to use for translating and finding non-synonymous changes.",
+        default=1,
+    )
+    parser.add_argument(
         "reference", help="Reference sequence ID to compare others against"
     )
     parser.add_argument(
@@ -41,7 +46,7 @@ def get_variable_sites(records):
     return variable_nuc_sites
 
 
-def classify_variable_sites(records, reference_id, variable_nuc_sites):
+def classify_variable_sites(records, reference_id, variable_nuc_sites, genetic_code):
     record_dict = {record.id: record for record in records}
     if reference_id not in record_dict:
         sys.exit(f"Reference ID '{reference_id}' not found in the alignment.")
@@ -54,7 +59,7 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites):
     reference_codons = {}
     for codon_index in codon_indices:
         ref_codon = reference_seq[codon_index * 3: codon_index * 3 + 3]
-        ref_aa = str(Seq(ref_codon).translate())
+        ref_aa = str(Seq(ref_codon).translate(table=genetic_code))
         reference_codons[codon_index + 1] = f"{ref_aa} ({ref_codon})"
         codon_has_nonsyn_change = False
         codon_has_syn_change = False
@@ -63,7 +68,7 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites):
                 continue
 
             codon = record.seq[codon_index * 3: codon_index * 3 + 3]
-            aa = str(Seq(codon).translate())
+            aa = str(Seq(codon).translate(table=genetic_code))
             if codon != ref_codon:
                 if aa != ref_aa:
                     codon_has_nonsyn_change = True
@@ -114,7 +119,7 @@ def print_summary(
     all_taxa = sorted(set(list(nonsyn_table.keys()) + list(syn_table.keys())))
     if not all_taxa:
         print("No variable codon changes found.")
-        print(f"\nTotal codon sites in alignment: {total_codons}")
+        print(f"\nTotal codons in alignment: {total_codons}")
         return
 
     codon_indices = sorted(reference_codons.keys())
@@ -151,7 +156,7 @@ def main():
     else:
         check_alignment_validity(alignment)
         syn, nonsyn, nonsyn_table, syn_table, ref_codons = classify_variable_sites(
-            alignment, args.reference, variable_sites
+            alignment, args.reference, variable_sites, args.genetic_code
         )
         total_codons = alignment_length // 3
         print_summary(
