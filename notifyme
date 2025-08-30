@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-topic="ntfy.sh/text_goes_here"
-# File to run the std output.
-#log_file="${$}_$(date +%s).log"
-#error_msg=$(tail -n 20 ${log_file})
+topic="ntfy.sh/kostas_at_molev212"
 cmd_to_run=$@
 
 function success { 

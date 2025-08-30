@@ -44,11 +44,11 @@ def extract_features(
             else:
                 fasta_header = f"{locus_tag}_{str(feature_counter).zfill(3)}"
             try:
-                seq_record = SeqRecord(
-                    seq,
-                    id=fasta_header,
-                    description=f"{feature.qualifiers['product'][0]} from {record.id}",
-                )
+                # if 'product' in feature.qualifiers:
+                #    description = f"{feature.qualifiers['product'][0]} from {record.id}"
+                #else:
+                #    description = feature.qualifiers['locus_tag'][0]
+                seq_record = SeqRecord(seq, id=fasta_header, description=description)
             except:
                 raise Exception(f'Problem with {feature}..')
 

@@ -80,7 +80,9 @@ def classify_variable_sites(records, reference_id, variable_nuc_sites, genetic_c
             if codon != ref_codon:
                 if aa != ref_aa:
                     codon_has_nonsyn_change = True
-                    nonsyn_table[record.id][codon_index + 1] = f"{aa} ({codon})"
+                    nonsyn_table[record.id][
+                        codon_index + 1
+                    ] = f"\033[31m{aa}\033[0m ({codon})"
                 else:
                     codon_has_syn_change = True
                     syn_table[record.id][codon_index + 1] = f". ({codon})"
