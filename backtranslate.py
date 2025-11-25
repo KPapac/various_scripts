@@ -34,6 +34,13 @@ parser.add_argument(
     default="out",
     help="Name of output file. Default value: out",
 )
+parser.add_argument(
+    "-T",
+    "--threads_mafft",
+    type=int,
+    default=1,
+    help="Threads to use for MAFFT alignment. Default is 1.",
+)
 args = parser.parse_args()
 
 
@@ -95,7 +102,12 @@ def main():
     SeqIO.write(protein_sequences, f"{args.prefix}_protein_sequences.fasta", "fasta")
     # Running protein alignment
     subprocess.run(
-        ["mafft-linsi", f"{args.prefix}_protein_sequences.fasta"],
+        [
+            "mafft-linsi",
+            "--thread",
+            str(args.threads_mafft),
+            f"{args.prefix}_protein_sequences.fasta",
+        ],
         stdout=open(f"{args.prefix}_protein_alignment.fasta", "w"),
     )
     # Backtranslating protein alignment
