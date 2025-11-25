@@ -103,7 +103,7 @@ def main():
         f"{args.prefix}_protein_alignment.fasta", args.input_fasta, args.genetic_code
     )
     # Write output
-    SeqIO.write(dna_alignment, args.prefix + "_bck_tr.fa", "fasta")
+    SeqIO.write(dna_alignment, args.prefix + ".mafft", "fasta")
     # Clean intermediate files
     if os.path.exists(f"{args.prefix}_protein_sequences.fasta"):
         os.remove(f"{args.prefix}_protein_sequences.fasta")
