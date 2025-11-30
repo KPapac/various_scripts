@@ -55,33 +55,49 @@ def backtranslate_protein(protein_alg, nucleotide_fasta, code):
     for record in SeqIO.parse(protein_alg, "fasta"):
         char_array = np.array(list(str(record.seq)), dtype="U1")
         prot_char_dict[record.description] = char_array
-    # Reading nucleotides
+    # Reading nucleotides (ungapped, split into codons)
     nucl_char_dict = {}
     for record in SeqIO.parse(nucleotide_fasta, "fasta"):
+        seq = record.seq  # important: use .seq
         char_array = np.array(
-            ["".join(record[i: i + 3]) for i in range(0, len(record), 3)], dtype="U3"
+            ["".join(seq[i: i + 3]) for i in range(0, len(seq), 3)], dtype="U3"
         )
         nucl_char_dict[record.description] = char_array
-    # insert '---' elements in nucl array at the same indices
     for fasta_entry in nucl_char_dict.keys():
-        # find the indices where prot array has '-'
-        insert_indices = np.where(prot_char_dict[fasta_entry] == "-")[0]
-        for index in insert_indices:
-            nucl_char_dict[fasta_entry] = np.insert(
-                nucl_char_dict[fasta_entry], index, ["---"]
-            )
-        # Verify that each triplet encodes for the correct amino acid
-        for i, (codon, aa) in enumerate(
-            zip(nucl_char_dict[fasta_entry], prot_char_dict[fasta_entry])
-        ):
+        prot = prot_char_dict[fasta_entry]
+        nucl = nucl_char_dict[fasta_entry]
+        aligned_codons = []
+        j = 0  # index into nucl (codon array)
+        # Walk along the protein alignment
+        for aa in prot:
+            if aa == "-":
+                # gap in protein → gap codon
+                aligned_codons.append("---")
+            else:
+                # real amino acid → take next codon if available
+                if j < len(nucl):
+                    codon = nucl[j]
+                    j += 1
+                else:
+                    # nucleotide sequence shorter → pad with '---'
+                    codon = "---"
+                aligned_codons.append(codon)
+        # Verify: each triplet encodes the correct amino acid
+        for i, (codon, aa) in enumerate(zip(aligned_codons, prot)):
+            # skip gaps and stop codons
+            if aa in ("-", "*") or codon == "---":
+                continue
+
             if Seq(codon).translate(table=code) != aa:
                 sys.exit(
-                    f"Error: codon {i//3} ({codon}) in nucl array does not encode for {prot_char_dict[fasta_entry][i]} amino acid in prot array. Exiting."
+                    f"Error: position {i}: codon {codon} does not encode "
+                    f"{aa} in {fasta_entry}. Exiting."
                 )
-        if args.stop_codon == True:
-            nucl_char_dict[fasta_entry] = "".join(nucl_char_dict[fasta_entry])[:-3]
-        else:
-            nucl_char_dict[fasta_entry] = "".join(nucl_char_dict[fasta_entry])
+        # Join nucleotides to a string and optionally remove the last codon
+        seq_str = "".join(aligned_codons)
+        if args.stop_codon:  # using your existing global args
+            seq_str = seq_str[:-3]
+        nucl_char_dict[fasta_entry] = seq_str
     backtranslated_dna_seq = [
         SeqRecord(Seq(seq), id=head, description="")
         for head, seq in nucl_char_dict.items()
