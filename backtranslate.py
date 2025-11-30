@@ -20,12 +20,6 @@ parser.add_argument(
     help="Set the genetic code for protein translation. Default is the Universal code (1). If aligning mitochondrial proteins, or anything else that does not follow the Universal genetic code, then you MUST set this...",
     default=1,
 )
-parser.add_argument(
-    "--stop_codon",
-    help="Add this flag if there are stop codons in the CDS sequences.",
-    action="store_true",
-    default=False,
-)
 parser.add_argument("input_fasta", type=str)
 parser.add_argument(
     "-p",
@@ -71,16 +65,12 @@ def backtranslate_protein(protein_alg, nucleotide_fasta, code):
         # Walk along the protein alignment
         for aa in prot:
             if aa == "-":
-                # gap in protein → gap codon
+                # if gap in protein then gap codon
                 aligned_codons.append("---")
             else:
-                # real amino acid → take next codon if available
-                if j < len(nucl):
-                    codon = nucl[j]
-                    j += 1
-                else:
-                    # nucleotide sequence shorter → pad with '---'
-                    codon = "---"
+                # if amino acid then take next codon if available
+                codon = nucl[j]
+                j += 1
                 aligned_codons.append(codon)
         # Verify: each triplet encodes the correct amino acid
         for i, (codon, aa) in enumerate(zip(aligned_codons, prot)):
@@ -93,11 +83,8 @@ def backtranslate_protein(protein_alg, nucleotide_fasta, code):
                     f"Error: position {i}: codon {codon} does not encode "
                     f"{aa} in {fasta_entry}. Exiting."
                 )
-        # Join nucleotides to a string and optionally remove the last codon
-        seq_str = "".join(aligned_codons)
-        if args.stop_codon:  # using your existing global args
-            seq_str = seq_str[:-3]
-        nucl_char_dict[fasta_entry] = seq_str
+        # Join nucleotides to a string
+        nucl_char_dict[fasta_entry] = "".join(aligned_codons)
     backtranslated_dna_seq = [
         SeqRecord(Seq(seq), id=head, description="")
         for head, seq in nucl_char_dict.items()
